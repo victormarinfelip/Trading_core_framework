@@ -4,6 +4,7 @@ This project, born based on previous works, aims to provide a free and versatile
 
 So far only the abstractions of portfolio, pair, asset, exchange and fee models are provided. All the code is well documented and easy to improve. It can only deal with bid/ask updates. This is a work in progress project that will grow over time based on several projects I've done in the past. Next items in the todo listm are:
 
+  - Trading simulation
   - A master file to generate the basic simulation loop and initialize everything.
   - Market depth.
   - Slippage model.
