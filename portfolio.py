@@ -5,7 +5,7 @@ vicmf88@gmail.com
 
 from base import *
 from collections import deque
-from engine_errors import *
+from errors import *
 from typing import Tuple, List, Union, Optional, Dict
 from datetime import datetime, timedelta
 import itertools
