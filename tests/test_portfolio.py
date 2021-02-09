@@ -1,3 +1,8 @@
+"""
+Victor Marin Felip
+vicmf88@gmail.com
+"""
+
 from portfolio_symbol import *
 from engine_errors import *
 from datetime import datetime, timedelta

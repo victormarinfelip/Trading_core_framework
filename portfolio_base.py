@@ -1,3 +1,8 @@
+"""
+Victor Marin Felip
+vicmf88@gmail.com
+"""
+
 from datetime import datetime
 from fee_models import *
 from engine_errors import FeeModelNotFound

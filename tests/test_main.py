@@ -1,6 +1,10 @@
-from test_basic import *
-from test_portfolio import *
-from test_loops import *
+"""
+Victor Marin Felip
+vicmf88@gmail.com
+"""
+
+from tests.test_basic import *
+from tests.test_portfolio import *
 import unittest
 
 if __name__ == '__main__':

@@ -1,3 +1,8 @@
+"""
+Victor Marin Felip
+vicmf88@gmail.com
+"""
+
 from portfolio_base import *
 from collections import deque
 from engine_errors import *
@@ -292,7 +297,7 @@ class Portfolio(object):
 				# TODO handle better this circumstance
 				# There are times when you have holdings of an asset that you don't want to trade/get rates of
 				
-				# raise AssetNotFound("Tried to update holdings of an unexisting Asset! {}-{}".format(ex, name))
+				raise AssetNotFound("Tried to update holdings of an unexisting Asset! {}-{}".format(ex, name))
 		
 		return self.get_holdings()
 		
