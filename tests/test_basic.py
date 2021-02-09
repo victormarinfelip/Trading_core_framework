@@ -3,7 +3,7 @@ Victor Marin Felip
 vicmf88@gmail.com
 """
 
-from portfolio_base import *
+from base import *
 from datetime import datetime
 import copy
 import unittest

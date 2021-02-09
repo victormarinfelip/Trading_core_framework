@@ -3,7 +3,7 @@ Victor Marin Felip
 vicmf88@gmail.com
 """
 
-from portfolio_base import *
+from base import *
 from collections import deque
 from engine_errors import *
 from typing import Tuple, List, Union, Optional, Dict
@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import itertools
 
 
-class Symbol(object):
+class Pair(object):
 	
 	def __init__(self, exchange: Exchange, coin: Asset, quote: Asset):
 		self.ex = exchange
@@ -20,7 +20,7 @@ class Symbol(object):
 		
 		self.fake_mode = False
 		# TODO check this doesn't interfere with things
-		# This is bc binance uses USDT by default, but we can trick the engine into thinking that this symbol exists
+		# This is bc binance uses USDT by default, but we can trick the engine into thinking that this pair exists
 		if self.ex == "BINANCE" and "USD" in self.coin.id and "USD" in self.quote.id:
 			self.fake_mode = True
 		
@@ -71,7 +71,7 @@ class Symbol(object):
 	
 	def add_update(self, update: PriceUpdate):
 		"""
-		Adds an update to the symbol. It expects the update to be for this specific symbol.
+		Adds an update to the pair. It expects the update to be for this specific pair.
 		Will throw exceptions if exchange and assets don't match
 		
 		:param update: The update
@@ -94,42 +94,42 @@ class Symbol(object):
 class Portfolio(object):
 	
 	def __init__(self):
-		self.symbols = {}
+		self.pairs = {}
 		self.ex_asset = {}
 		self._possible_loops = None
 		self._updating = True
 	
-	def add_symbol(self, symbol: Union[str, Tuple[Exchange, Asset, Asset]]) -> Symbol:
+	def add_pair(self, pair: Union[str, Tuple[Exchange, Asset, Asset]]) -> Pair:
 		"""
-		Adds a symbol to the portfolio.
-		Symbols can be a string like "KRAKEN_USD_BTC" or a list of Exchange, Asset, Asset
+		Adds a pair to the portfolio.
+		pairs can be a string like "KRAKEN_USD_BTC" or a list of Exchange, Asset, Asset
 		
-		:param symbol: The symbol to be added
-		:return: The added symbol object
+		:param pair: The pair to be added
+		:return: The added pair object
 		"""
 		# TODO more elegant solution if we wait until checking if assets already exist before instanciating them
-		if type(symbol) is str:
-			names = symbol.split("_")
+		if type(pair) is str:
+			names = pair.split("_")
 			if len(names) != 3:
-				raise IndexError("A symbol needs 3 items. Got: {}".format(names))
+				raise IndexError("A pair needs 3 items. Got: {}".format(names))
 			ex = Exchange(names[0])
 			coin = Asset(names[1])
 			quote = Asset(names[2])
-			new_symbol = Symbol(ex, coin, quote)
-		elif type(symbol) is tuple:
-			if len(symbol) != 3:
-				raise IndexError("A symbol needs 3 items. Got: {}".format(symbol))
-			new_symbol = Symbol(*symbol)
+			new_pair = Pair(ex, coin, quote)
+		elif type(pair) is tuple:
+			if len(pair) != 3:
+				raise IndexError("A symbol needs 3 items. Got: {}".format(pair))
+			new_pair = Pair(*pair)
 		else:
-			raise UnrecognizedSymbolFormat(symbol)
+			raise UnrecognizedPairlFormat(pair)
 		
-		e = new_symbol.ex.id
-		co = new_symbol.coin.id
-		quo = new_symbol.quote.id
+		e = new_pair.ex.id
+		co = new_pair.coin.id
+		quo = new_pair.quote.id
 		
 		try:
-			old_symbol = self.symbols[e][co][quo]
-			raise AlreadyImplementedSymbol(old_symbol)
+			old_pair = self.pairs[e][co][quo]
+			raise AlreadyImplementedPair(old_pair)
 		except KeyError:
 			pass
 		if e not in self.ex_asset.keys():
@@ -137,119 +137,119 @@ class Portfolio(object):
 			ex_ass = self.get_assets()
 			for ex, asslist in ex_ass.items():
 				for ass in asslist.values():
-					if ass == new_symbol.coin:
-						new_symbol.coin = Asset(ass.id)
-					if ass == new_symbol.quote:
-						new_symbol.quote = Asset(ass.id)
+					if ass == new_pair.coin:
+						new_pair.coin = Asset(ass.id)
+					if ass == new_pair.quote:
+						new_pair.quote = Asset(ass.id)
 			
-			self.ex_asset[e] = {"object": new_symbol.ex}
+			self.ex_asset[e] = {"object": new_pair.ex}
 		else:
-			new_symbol.ex = self.ex_asset[e]["object"]
+			new_pair.ex = self.ex_asset[e]["object"]
 		if co not in self.ex_asset[e].keys():
-			self.ex_asset[e][co] = new_symbol.coin
+			self.ex_asset[e][co] = new_pair.coin
 		else:
-			new_symbol.coin = self.ex_asset[e][co]
+			new_pair.coin = self.ex_asset[e][co]
 		if quo not in self.ex_asset[e].keys():
-			self.ex_asset[e][quo] = new_symbol.quote
+			self.ex_asset[e][quo] = new_pair.quote
 		else:
-			new_symbol.quote = self.ex_asset[e][quo]
+			new_pair.quote = self.ex_asset[e][quo]
 		
-		if e not in self.symbols:
-			self.symbols[e] = {}
-		if co not in self.symbols[e]:
-			self.symbols[e][co] = {}
-		if quo not in self.symbols[e][co]:
-			self.symbols[e][co][quo] = new_symbol
+		if e not in self.pairs:
+			self.pairs[e] = {}
+		if co not in self.pairs[e]:
+			self.pairs[e][co] = {}
+		if quo not in self.pairs[e][co]:
+			self.pairs[e][co][quo] = new_pair
 
-		return new_symbol
+		return new_pair
 	
-	def get_symbols_by_exchange(self, exchange: Union[str, Exchange]) -> list:
+	def get_pairs_by_exchange(self, exchange: Union[str, Exchange]) -> list:
 		"""
-		Returns a list of symbols instanced for an exchange
+		Returns a list of pairs instanced for an exchange
 		
 		:param exchange: The exchange, in string form or as an object
-		:return: A list of symbols, empty if none is found
+		:return: A list of pairs, empty if none is found
 		"""
-		found_symbols = []
+		found_pairs = []
 		exchange = str(exchange)
-		if exchange not in self.symbols.keys():
-			return found_symbols
+		if exchange not in self.pairs.keys():
+			return found_pairs
 		
-		for c, a in self.symbols[exchange].items():
+		for c, a in self.pairs[exchange].items():
 			for quo, b in a.items():
-				found_symbols.append(b)
+				found_pairs.append(b)
 				
-		return found_symbols
+		return found_pairs
 	
-	def get_symbols_by_coin(self, coin: Union[str, Asset]) -> List[Symbol]:
+	def get_pairs_by_coin(self, coin: Union[str, Asset]) -> List[Pair]:
 		"""
-		Returns a list of symbols instanced for a coin
+		Returns a list of pairs instanced for a coin
 		
 		:param coin: The coin, in string form or as an object
-		:return: A list of symbols, empty if none is found
+		:return: A list of pairs, empty if none is found
 		"""
-		found_symbols = []
+		found_pair = []
 		
 		coin = str(coin)
 		
-		for ex in self.symbols.keys():
-			if coin not in self.symbols[ex].keys():
+		for ex in self.pairs.keys():
+			if coin not in self.pairs[ex].keys():
 				continue
-			for quo, symbol in self.symbols[ex][coin].items():
-				found_symbols.append(symbol)
+			for quo, pair in self.pairs[ex][coin].items():
+				found_pair.append(pair)
 
-		return found_symbols
+		return found_pair
 	
-	def get_symbols_full(self) -> dict:
+	def get_pairs_full(self) -> dict:
 		"""
-		Returns a dict of dicts with symbol objects per exchange. [ex][symb.id] = symb_obj
+		Returns a dict of dicts with pair objects per exchange. [ex][symb.id] = symb_obj
 		
 		:return: The dict.
 		"""
-		symbols_full = {}
-		for ex in self.symbols.keys():
-			symbols_ex = self.get_symbols_by_exchange(ex)
-			symbols_full[ex] = {}
-			for symb in symbols_ex:
-				symbols_full[ex][symb.id] = symb
-		return symbols_full
+		pairs_full = {}
+		for ex in self.pairs.keys():
+			pairs_ex = self.get_pairs_by_exchange(ex)
+			pairs_full[ex] = {}
+			for symb in pairs_ex:
+				pairs_full[ex][symb.id] = symb
+		return pairs_full
 		
-	def get_symbols_by_quote(self, quote: Union[str, Asset]) -> list:
+	def get_pairs_by_quote(self, quote: Union[str, Asset]) -> list:
 		"""
-		Returns a list of symbols instanced for a quote
+		Returns a list of pairs instanced for a quote
 		
 		:param quote: The quote, in string form or as an object
-		:return: A list of symbols, empty if none is found
+		:return: A list of pairs, empty if none is found
 		"""
-		found_symbols = []
+		found_pairs = []
 		
 		quote = str(quote)
 		
-		for ex in self.symbols.keys():
-			for co in self.symbols[ex].keys():
-				if quote not in self.symbols[ex][co].keys():
+		for ex in self.pairs.keys():
+			for co in self.pairs[ex].keys():
+				if quote not in self.pairs[ex][co].keys():
 					continue
-				found_symbols.append(self.symbols[ex][co][quote])
+				found_pairs.append(self.pairs[ex][co][quote])
 
-		return found_symbols
+		return found_pairs
 	
-	def get_symbol_by_id(self, symbol_id: Union[str, Tuple[Exchange, Asset, Asset]]) -> Optional[Symbol]:
+	def get_pair_by_id(self, pair_id: Union[str, Tuple[Exchange, Asset, Asset]]) -> Optional[Pair]:
 		"""
-		Returns the symbol object with the same symbol id as specified, none if it is not found
+		Returns the pair object with the same pair id as specified, none if it is not found
 		
-		:param symbol_id: The symbol id in strnig format or tuple of (exchange, coin, quote) as strings
+		:param pair_id: The pair id in strnig format or tuple of (exchange, coin, quote) as strings
 		:return:
 		"""
-		found_symbol = None
+		found_pair = None
 		
-		if type(symbol_id) == str:
-			symbol_id = symbol_id.split("_")
-		if len(symbol_id) != 3:
-			raise UnrecognizedSymbolFormat(symbol_id)
-		if self.symbol_exists(symbol_id):
-			return self.symbols[symbol_id[0]][symbol_id[1]][symbol_id[2]]
+		if type(pair_id) == str:
+			pair_id = pair_id.split("_")
+		if len(pair_id) != 3:
+			raise UnrecognizedPairlFormat(pair_id)
+		if self.pair_exists(pair_id):
+			return self.pairs[pair_id[0]][pair_id[1]][pair_id[2]]
 		
-		return found_symbol
+		return found_pair
 
 	def stop_updating(self):
 		self._updating = False
@@ -257,20 +257,20 @@ class Portfolio(object):
 	def resume_updating(self):
 		self._updating = True
 		
-	def push_update(self, update: PriceUpdate) -> Symbol:
+	def push_update(self, update: PriceUpdate) -> Pair:
 		"""
-		Pushes an update to the portfolio. Automatically finds the correct symbol to apply the update
+		Pushes an update to the portfolio. Automatically finds the correct pair to apply the update
 		
 		:param update: The update as an instance of the PriceUpdate class
-		:return: The updated symbol
+		:return: The updated pair
 		"""
-		if not self.symbol_exists(update.id):
-			raise SymbolNotImplemented("{}_{}_{}".format(*update.id))
+		if not self.pair_exists(update.id):
+			raise PairlNotImplemented("{}_{}_{}".format(*update.id))
 		ex, co, quo = update.id
-		target_symbol = self.symbols[ex][co][quo]
+		target_pair = self.pairs[ex][co][quo]
 		if self._updating:
-			target_symbol.add_update(update)
-		return target_symbol
+			target_pair.add_update(update)
+		return target_pair
 	
 	def adjust_holdings_from_assetupd(self, update: Optional[AssetUpdate]) -> Optional[dict]:
 		"""
@@ -301,44 +301,44 @@ class Portfolio(object):
 		
 		return self.get_holdings()
 		
-	def symbol_exists(self, symbol: Union[str, list, tuple]) -> bool:
+	def pair_exists(self, pair: Union[str, list, tuple]) -> bool:
 		"""
-		Returns False if symbol is not found within the portfolio
+		Returns False if pair is not found within the portfolio
 		
-		:param symbol: Symbol in string format or list of strings as [exchange, coin, quote]
+		:param pair: pair in string format or list of strings as [exchange, coin, quote]
 		
 		:return: bool
 		"""
-		if type(symbol) == str:
-			symbol = symbol.split("_")
+		if type(pair) == str:
+			pair = pair.split("_")
 			
-		if len(symbol) != 3:
-			raise UnrecognizedSymbolFormat(symbol)
+		if len(pair) != 3:
+			raise UnrecognizedPairlFormat(pair)
 		
-		for el in symbol:
+		for el in pair:
 			if type(el) is not str:
-				raise UnrecognizedSymbolFormat(symbol)
+				raise UnrecognizedPairlFormat(pair)
 		
 		try:
-			self.symbols[symbol[0]][symbol[1]][symbol[2]]
+			self.pairs[pair[0]][pair[1]][pair[2]]
 		except KeyError:
 			return False
 		return True
 		
-	def get_symbol_list(self) -> list:
+	def get_pair_list(self) -> list:
 		"""
-		Returns a list of all the symbols in the portfolio, empty if none.
+		Returns a list of all the pairs in the portfolio, empty if none.
 		
-		:return: List of Symbol objects
+		:return: List of pair objects
 		"""
 		
-		found_symbols = []
-		for d1, a in self.symbols.items():
+		found_pairs = []
+		for d1, a in self.pairs.items():
 			for d2, b in a.items():
 				for d3, c in b.items():
-					found_symbols.append(c)
+					found_pairs.append(c)
 		
-		return found_symbols
+		return found_pairs
 	
 	def get_holdings(self) -> dict:
 		"""
@@ -374,13 +374,13 @@ class Portfolio(object):
 				else:
 					try:
 						pair = "{}_{}_USD".format(ex, ass)
-						symbol = self.get_symbol_by_id(pair)
-						if symbol is None:
-							rate1 = self.get_symbol_by_id("{}_{}_BTC".format(ex, ass)).rate
-							rate2 = self.get_symbol_by_id("{}_BTC_USD".format(ex)).rate
+						pair = self.get_pair_by_id(pair)
+						if pair is None:
+							rate1 = self.get_pair_by_id("{}_{}_BTC".format(ex, ass)).rate
+							rate2 = self.get_pair_by_id("{}_BTC_USD".format(ex)).rate
 							usd_value = am*rate1*rate2
 						else:
-							rate = symbol.rate
+							rate = pair.rate
 							usd_value = am*rate
 					except:
 						usd_value = None
@@ -449,95 +449,95 @@ class Portfolio(object):
 		
 		return result
 
-	def get_possible_loops(self, depth: int = 3) -> List[Tuple[Symbol, ...]]:
+	def get_possible_loops(self, depth: int = 3) -> List[Tuple[Pair, ...]]:
 		"""
 		Returns all the theorethically possible and consistent
-		loops within the already added symbols.
+		loops within the already added pairs.
 		
 		:param depth: Lenght of the loop. Will only search for loops of that lenght, not less, but exactly that.
-		:return: A list ot tuples of symbols, where each tuple represents a different loop. An empty list if none is found.
+		:return: A list ot tuples of pairs, where each tuple represents a different loop. An empty list if none is found.
 		"""
 		if self._possible_loops is not None:
 			return self._possible_loops
 
-		all_symbols = self.get_symbol_list()
+		all_pairs = self.get_pair_list()
 		
 		possible = []
-		for sequence in itertools.permutations(all_symbols, depth):
+		for sequence in itertools.permutations(all_pairs, depth):
 			if self.check_loop_consistency(sequence):
 				possible.append(tuple(sequence))
 		return possible
 		
 	@staticmethod
-	def check_loop_consistency(symbol_sequence: Tuple[Symbol, ...]) -> bool:
+	def check_loop_consistency(pair_sequence: Tuple[Pair, ...]) -> bool:
 		"""
-		Returns False if the loop (as a sequence of symbols):
+		Returns False if the loop (as a sequence of pairs):
 		- Is not "closed".
 		- Is not "chained".
 		True otherwise.
 		
-		:param symbol_sequence: The loop as a tuple of symbols
+		:param pair_sequence: The loop as a tuple of pairs
 		:return:
 		"""
-		if len(symbol_sequence) < 2:
+		if len(pair_sequence) < 2:
 			return False
 		
-		starting_coin = symbol_sequence[0].coin.id
-		starting_quote = symbol_sequence[0].quote.id
-		ending_quote = symbol_sequence[-1].quote.id
+		starting_coin = pair_sequence[0].coin.id
+		starting_quote = pair_sequence[0].quote.id
+		ending_quote = pair_sequence[-1].quote.id
 		if starting_coin != ending_quote:
 			return False
 		
-		for i in range(len(symbol_sequence)-1):
-			if starting_quote != symbol_sequence[i+1].coin.id:
+		for i in range(len(pair_sequence) - 1):
+			if starting_quote != pair_sequence[i + 1].coin.id:
 				return False
-			starting_quote = symbol_sequence[i+1].quote.id
+			starting_quote = pair_sequence[i + 1].quote.id
 
 		return True
 
-	def symbols_with_data(self, threshold: timedelta) -> List[Symbol]:
+	def pairs_with_data(self, threshold: timedelta) -> List[Pair]:
 		"""
-		Returns the list of symbols with data more recent than now - threshold
+		Returns the list of pairs with data more recent than now - threshold
 
-		:return: A list of Symbol instances.
+		:return: A list of pair instances.
 		"""
 
 		out = []
 
-		for symbol in self.get_symbol_list():
-			if symbol.time_since_update <= threshold:
-				out.append(symbol)
+		for pair in self.get_pair_list():
+			if pair.time_since_update <= threshold:
+				out.append(pair)
 
 		return out
 
 	def report(self, threshold: timedelta) -> dict:
 		"""
-		Returns a dictionary with a report about which symbols has recent data.
+		Returns a dictionary with a report about which pairs has recent data.
 		Keys are:
 		- all: true if everything has data
-		- overview: number of symbols with data / total symbols
-		- with: list of symbol ids with data
-		- withouth: list of symbol ids without data
-		- exchange: dict of exchange: bool, where bool = all its symbols have data
+		- overview: number of pairs with data / total pairs
+		- with: list of pair ids with data
+		- withouth: list of pair ids without data
+		- exchange: dict of exchange: bool, where bool = all its pairs have data
 
 		:param threshold: the threshold that defines having recent data or not
 		"""
 
 		out = {"all": False, "overview": "", "with": [], "without": [], "exchanges": {}}
 
-		total = [x.time_since_update < threshold for x in self.get_symbol_list()]
+		total = [x.time_since_update < threshold for x in self.get_pair_list()]
 		out["all"] = all(total)
 		total = "{}/{}".format(sum(total), len(total))
 		out["overview"] = total
 
-		wi = [x.id for x in self.get_symbol_list() if x.time_since_update < threshold]
-		wo = [x.id for x in self.get_symbol_list() if x.time_since_update > threshold]
+		wi = [x.id for x in self.get_pair_list() if x.time_since_update < threshold]
+		wo = [x.id for x in self.get_pair_list() if x.time_since_update > threshold]
 
 		out["with"] = wi
 		out["without"] = wo
 
 		result = {}
-		for ex, symblist in self.get_symbols_full().items():
+		for ex, symblist in self.get_pairs_full().items():
 			result[ex] = all([x.time_since_update < threshold for x in symblist.values()])
 
 		out["exchanges"] = result
@@ -549,16 +549,16 @@ class Portfolio(object):
 		Returns TRUE if data has been added within the last second, false otherwise
 		"""
 
-		for symbol in self.get_symbol_list():
-			if symbol.time_since_update <= timedelta(seconds=3):
+		for pair in self.get_pair_list():
+			if pair.time_since_update <= timedelta(seconds=3):
 				return True
 
 		return False
 
 	def last_data_td(self) -> timedelta:
 		tdelta = []
-		for symbol in self.get_symbol_list():
-			tdelta.append(symbol.time_since_update)
+		for pair in self.get_pair_list():
+			tdelta.append(pair.time_since_update)
 		return min(tdelta)
 
 	def get_virtual_rate(self, exchange: str, asset: str, quote_asset: str, vehicle_asset: str = "BTC") -> Optional[float]:
@@ -574,8 +574,8 @@ class Portfolio(object):
 		:return: Virtual rate if possible, None if not.
 		"""
 
-		s1 = self.get_symbol_by_id("{}_{}_{}".format(exchange, asset, vehicle_asset))
-		s2 = self.get_symbol_by_id("{}_{}_{}".format(exchange, vehicle_asset, quote_asset))
+		s1 = self.get_pair_by_id("{}_{}_{}".format(exchange, asset, vehicle_asset))
+		s2 = self.get_pair_by_id("{}_{}_{}".format(exchange, vehicle_asset, quote_asset))
 
 		if s1 is None or s2 is None:
 			return None
@@ -596,7 +596,7 @@ class Portfolio(object):
 		"""
 
 		to_usd_str = "{}_{}_USD".format(exchange, asset)
-		symb = self.get_symbol_by_id(to_usd_str)
+		symb = self.get_pair_by_id(to_usd_str)
 		if symb is None:
 			rate = self.get_virtual_rate(exchange, asset, "USD", vehicle_asset)
 			if rate is None:
@@ -606,18 +606,18 @@ class Portfolio(object):
 		assobj = self.get_assets()[exchange][asset]
 		return assobj.am * rate
 
-	def add_symbol_reverses(self):
+	def add_pair_reverses(self):
 		"""
 		Adds a reversed pair per already added pair
 
 		:return: None
 		"""
 		to_add = []
-		for symbol in self.get_symbol_list():
-			to_add.append("{}_{}_{}".format(symbol.ex.id, symbol.quote.id, symbol.coin.id))
+		for pair in self.get_pair_list():
+			to_add.append("{}_{}_{}".format(pair.ex.id, pair.quote.id, pair.coin.id))
 
-		for symbol in to_add:
-			self.add_symbol(symbol)
+		for pair in to_add:
+			self.add_pair(pair)
 
 	def set_fake_holdings(self):
 		"""
@@ -625,6 +625,6 @@ class Portfolio(object):
 
 		:return:
 		"""
-		for symbol in self.get_symbol_list():
-			symbol.coin._hold = 100
-			symbol.quote._hold = 100
+		for pair in self.get_pair_list():
+			pair.coin._hold = 100
+			pair.quote._hold = 100

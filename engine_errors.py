@@ -29,7 +29,7 @@ class WrongExchangeError(EngineException):
 
 	def __init__(self, expected_ex, given_ex):
 		"""
-		Raised when the wrong exchange is passed to a symbol and the like
+		Raised when the wrong exchange is passed to a pair and the like
 		
 		:param expected_ex: Expected exchange
 		:param given_ex:  Given exchange
@@ -74,49 +74,49 @@ class WrongAssetError(EngineException):
 		return "Wrong Asset: {0}, expected {1}".format(self.exp, self.giv)
 
 
-class UnrecognizedSymbolFormat(EngineException):
+class UnrecognizedPairlFormat(EngineException):
 	
-	def __init__(self, symbol):
+	def __init__(self, pair):
 		"""
-		Raised when an unrecognized symbol format is passed to a symbol constructor
+		Raised when an unrecognized pair format is passed to a pair constructor
 		
-		:param symbol: the unrecognized item
+		:param pair: the unrecognized item
 		"""
 		super().__init__()
-		self.symb = symbol
+		self.symb = pair
 		
 	def __str__(self):
-		return "Unrecognized symbol: {}".format(self.symb)
+		return "Unrecognized pair: {}".format(self.symb)
 
 
-class AlreadyImplementedSymbol(EngineException):
+class AlreadyImplementedPair(EngineException):
 	
-	def __init__(self, symbol):
+	def __init__(self, pair):
 		"""
-		Raised when an duplicated symbol is added to a portfolio
+		Raised when an duplicated pair is added to a portfolio
 		
-		:param symbol: the duplicated item
+		:param pair: the duplicated item
 		"""
 		super().__init__()
-		self.symb = symbol
+		self.symb = pair
 		
 	def __str__(self):
-		return "Already implemented symbol: {}".format(self.symb)
+		return "Already implemented pair: {}".format(self.symb)
 
 
-class SymbolNotImplemented(EngineException):
+class PairlNotImplemented(EngineException):
 	
-	def __init__(self, symbol):
+	def __init__(self, pair):
 		"""
-		Raised when an unexisting symbol is added to a portfolio
+		Raised when an unexisting pair is added to a portfolio
 		
-		:param symbol: the duplicated item
+		:param pair: the duplicated item
 		"""
 		super().__init__()
-		self.symb = symbol
+		self.symb = pair
 		
 	def __str__(self):
-		return "Symbol doesn't exist: {}".format(self.symb)
+		return "pair doesn't exist: {}".format(self.symb)
 
 
 class AssetNotFound(EngineException):
